@@ -1,9 +1,14 @@
 import type { Offer, PriceHistoryPoint, Product, SearchResponse, Store } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function getApiUrl(): string {
+  if (typeof window !== "undefined") {
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  }
+  return process.env.INTERNAL_API_URL || "http://api:8000";
+}
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${getApiUrl()}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
     cache: "no-store",
@@ -45,7 +50,7 @@ export async function getProductHistory(id: string): Promise<{ history: PriceHis
 export function getSearchStreamUrl(q: string, area?: string): string {
   const params = new URLSearchParams({ q });
   if (area) params.set("area", area);
-  return `${API_URL}/api/v1/search/stream?${params}`;
+  return `${getApiUrl()}/api/v1/search/stream?${params}`;
 }
 
 export function formatPrice(price: number | string): string {
