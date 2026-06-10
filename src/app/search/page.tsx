@@ -1,55 +1,103 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { DealCard } from "@/components/DealCard";
 import { SearchBar } from "@/components/SearchBar";
-import { SearchProgress } from "@/components/SearchProgress";
+import { SearchLoadingState } from "@/components/SearchLoadingState";
 import { useSearchSSE } from "@/hooks/useSearchSSE";
 import { searchProducts } from "@/lib/api/client";
 import type { Offer } from "@/lib/api/types";
+
+type SearchPhase = "idle" | "checking" | "scraping" | "done";
+
+function sortOffers(offers: Offer[], sort: string): Offer[] {
+  return [...offers].sort((a, b) => {
+    if (sort === "price") {
+      return Number(a.price_bdt) - Number(b.price_bdt);
+    }
+    const au = Number(a.unit_price_bdt ?? a.price_bdt);
+    const bu = Number(b.unit_price_bdt ?? b.price_bdt);
+    if (sort === "freshness") {
+      return (b.scraped_at || "").localeCompare(a.scraped_at || "");
+    }
+    const ar = a.relevance_score ?? 0;
+    const br = b.relevance_score ?? 0;
+    if (ar !== br) return br - ar;
+    return au - bu;
+  });
+}
+
+function OfferGrid({ offers }: { offers: Offer[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {offers.map((offer, i) => (
+        <DealCard key={`${offer.store_slug}-${offer.title}-${i}`} offer={offer} />
+      ))}
+    </div>
+  );
+}
 
 function SearchResults() {
   const params = useSearchParams();
   const q = params.get("q") || "";
   const area = params.get("area") || undefined;
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [relatedOffers, setRelatedOffers] = useState<Offer[]>([]);
   const [cached, setCached] = useState(false);
   const [sort, setSort] = useState("unit_price");
+  const [phase, setPhase] = useState<SearchPhase>("idle");
   const [useStream, setUseStream] = useState(false);
 
   const sse = useSearchSSE(q, area, useStream);
 
   useEffect(() => {
-    if (!q) return;
+    if (!q) {
+      setPhase("idle");
+      setOffers([]);
+      setRelatedOffers([]);
+      setUseStream(false);
+      return;
+    }
+
+    setPhase("checking");
+    setOffers([]);
+    setRelatedOffers([]);
+    setCached(false);
     setUseStream(false);
+
     searchProducts(q, { area, sort, force_refresh: false })
       .then((res) => {
         if (res.cached && res.offers.length > 0) {
           setOffers(res.offers);
+          setRelatedOffers(res.related_offers || []);
           setCached(true);
+          setPhase("done");
         } else {
+          setPhase("scraping");
           setUseStream(true);
         }
       })
-      .catch(() => setUseStream(true));
-  }, [q, area, sort]);
+      .catch(() => {
+        setPhase("scraping");
+        setUseStream(true);
+      });
+  }, [q, area]);
 
   useEffect(() => {
-    if (sse.offers.length > 0) {
+    if (sse.complete) {
       setOffers(sse.offers);
-      setCached(false);
+      setRelatedOffers(sse.relatedOffers);
+      setPhase("done");
     }
-  }, [sse.offers]);
+  }, [sse.complete, sse.offers, sse.relatedOffers]);
 
-  const sorted = [...offers].sort((a, b) => {
-    if (sort === "price") {
-      return Number(a.price_bdt) - Number(b.price_bdt);
-    }
-    const au = Number(a.unit_price_bdt ?? a.price_bdt);
-    const bu = Number(b.unit_price_bdt ?? b.price_bdt);
-    return au - bu;
-  });
+  const sortedOffers = useMemo(() => sortOffers(offers, sort), [offers, sort]);
+  const sortedRelated = useMemo(() => sortOffers(relatedOffers, sort), [relatedOffers, sort]);
+
+  const isLoading = phase === "checking" || phase === "scraping" || sse.loading;
+  const hasResults = sortedOffers.length > 0 || sortedRelated.length > 0;
+  const showEmpty = phase === "done" && !hasResults && !isLoading;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -64,30 +112,51 @@ function SearchResults() {
               Results for &ldquo;{q}&rdquo;
               {cached && <span className="ml-2 text-sm font-normal text-emerald-600">(cached)</span>}
             </h1>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm"
-            >
-              <option value="unit_price">Lowest unit price</option>
-              <option value="price">Lowest price</option>
-            </select>
+            {!isLoading && hasResults && (
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm"
+              >
+                <option value="unit_price">Lowest unit price</option>
+                <option value="price">Lowest price</option>
+              </select>
+            )}
           </div>
 
-          {(sse.loading || sse.progress.length > 0) && (
-            <div className="mb-6">
-              <SearchProgress messages={sse.progress} loading={sse.loading} />
-            </div>
+          {isLoading && (
+            <SearchLoadingState
+              phase={phase === "checking" ? "checking" : "scraping"}
+              query={q}
+              messages={sse.progress}
+            />
           )}
 
-          {sorted.length === 0 && !sse.loading ? (
+          {showEmpty && (
             <p className="text-emerald-700">No products found. Try a different search term.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sorted.map((offer, i) => (
-                <DealCard key={`${offer.store_slug}-${i}`} offer={offer} />
-              ))}
-            </div>
+          )}
+
+          {sortedOffers.length > 0 && (
+            <section className="mb-10">
+              <h2 className="mb-4 text-lg font-semibold text-emerald-900">
+                Best matches for &ldquo;{q}&rdquo;
+                <span className="ml-2 text-sm font-normal text-emerald-600">({sortedOffers.length})</span>
+              </h2>
+              <OfferGrid offers={sortedOffers} />
+            </section>
+          )}
+
+          {sortedRelated.length > 0 && (
+            <section>
+              <h2 className="mb-1 text-lg font-semibold text-emerald-900">
+                Related products
+                <span className="ml-2 text-sm font-normal text-emerald-600">({sortedRelated.length})</span>
+              </h2>
+              <p className="mb-4 text-sm text-emerald-600">
+                Items containing &ldquo;{q}&rdquo; but not the exact product — e.g. milk chocolate, milk butter
+              </p>
+              <OfferGrid offers={sortedRelated} />
+            </section>
           )}
         </>
       )}
@@ -97,7 +166,7 @@ function SearchResults() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-emerald-700">Loading...</div>}>
+    <Suspense fallback={<SearchLoadingState phase="checking" query="" messages={["Loading..."]} />}>
       <SearchResults />
     </Suspense>
   );

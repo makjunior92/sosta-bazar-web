@@ -1,6 +1,9 @@
+"use client";
+
 import { ExternalLink, Tag } from "lucide-react";
 import type { Offer } from "@/lib/api/types";
 import { STORE_COLORS, formatPrice } from "@/lib/api/client";
+import { ProductImage } from "@/components/ProductImage";
 
 export function DealCard({ offer }: { offer: Offer }) {
   const storeClass = STORE_COLORS[offer.store_slug] || "bg-gray-100 text-gray-800 border-gray-200";
@@ -14,12 +17,7 @@ export function DealCard({ offer }: { offer: Offer }) {
         </div>
       )}
       <div className="flex h-44 items-center justify-center bg-emerald-50/50 p-4">
-        {offer.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={offer.image_url} alt={offer.title} className="max-h-full max-w-full object-contain" />
-        ) : (
-          <div className="text-4xl">🛒</div>
-        )}
+        <ProductImage src={offer.image_url} alt={offer.title} />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <span className={`inline-flex w-fit rounded-full border px-2.5 py-0.5 text-xs font-semibold ${storeClass}`}>

@@ -10,6 +10,7 @@ export interface Offer {
   in_stock: boolean;
   scraped_at?: string | null;
   is_best_deal: boolean;
+  relevance_score?: number | null;
 }
 
 export interface SearchResponse {
@@ -18,6 +19,7 @@ export interface SearchResponse {
   cached: boolean;
   job_id?: string | null;
   offers: Offer[];
+  related_offers?: Offer[];
   stores_checked: string[];
   stores_failed: string[];
 }

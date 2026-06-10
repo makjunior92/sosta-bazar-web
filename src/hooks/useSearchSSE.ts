@@ -8,25 +8,38 @@ interface SSEState {
   loading: boolean;
   progress: string[];
   offers: Offer[];
+  relatedOffers: Offer[];
   storesChecked: string[];
   storesFailed: string[];
   error: string | null;
+  complete: boolean;
 }
 
-export function useSearchSSE(query: string, area?: string, enabled = true) {
+export function useSearchSSE(query: string, area?: string, enabled = false) {
   const [state, setState] = useState<SSEState>({
     loading: false,
     progress: [],
     offers: [],
+    relatedOffers: [],
     storesChecked: [],
     storesFailed: [],
     error: null,
+    complete: false,
   });
 
   const run = useCallback(() => {
     if (!query || !enabled) return;
 
-    setState({ loading: true, progress: ["Starting search..."], offers: [], storesChecked: [], storesFailed: [], error: null });
+    setState({
+      loading: true,
+      progress: ["Starting search..."],
+      offers: [],
+      relatedOffers: [],
+      storesChecked: [],
+      storesFailed: [],
+      error: null,
+      complete: false,
+    });
 
     const es = new EventSource(getSearchStreamUrl(query, area));
 
@@ -46,14 +59,16 @@ export function useSearchSSE(query: string, area?: string, enabled = true) {
         } else if (data.event === "store_error") {
           setState((s) => ({
             ...s,
-            progress: [...s.progress, `${data.store}: failed`],
+            progress: [...s.progress, `${data.store}: unavailable`],
             storesFailed: [...s.storesFailed, data.store],
           }));
         } else if (data.event === "complete") {
           setState((s) => ({
             ...s,
             loading: false,
+            complete: true,
             offers: data.offers || [],
+            relatedOffers: data.related_offers || [],
             storesChecked: data.stores_checked || [],
             storesFailed: data.stores_failed || [],
             progress: [...s.progress, "Done!"],
@@ -61,12 +76,12 @@ export function useSearchSSE(query: string, area?: string, enabled = true) {
           es.close();
         }
       } catch {
-        setState((s) => ({ ...s, error: "Failed to parse response" }));
+        setState((s) => ({ ...s, error: "Failed to parse response", loading: false, complete: true }));
       }
     };
 
     es.onerror = () => {
-      setState((s) => ({ ...s, loading: false, error: "Connection lost" }));
+      setState((s) => ({ ...s, loading: false, complete: true, error: "Connection lost" }));
       es.close();
     };
 
