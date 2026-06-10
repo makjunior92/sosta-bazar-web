@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { DM_Sans, Noto_Sans_Bengali } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
+
+import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import "./globals.css";
 
@@ -8,20 +12,34 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Sosta Bazar — Compare Grocery Prices in Bangladesh",
-  description: "Find the cheapest deals across Chaldal, Shwapno, MeenaClick, Daraz dMart and more.",
-};
+const notoBengali = Noto_Sans_Bengali({
+  variable: "--font-noto-bengali",
+  subsets: ["bengali"],
+  weight: ["400", "500", "600", "700"],
+});
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("home");
+  return {
+    title: `${t("cheapest")} — Sosta Bazar`,
+    description: t("subtitle"),
+  };
+}
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" className={`${dmSans.variable} h-full`}>
-      <body className="min-h-full flex flex-col antialiased">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <footer className="border-t border-emerald-900/10 py-6 text-center text-sm text-emerald-700">
-          © {new Date().getFullYear()} Sosta Bazar — Compare prices, save money.
-        </footer>
+    <html lang={locale} className={`${dmSans.variable} ${notoBengali.variable} h-full`}>
+      <body
+        className={`min-h-full flex flex-col antialiased ${locale === "bn" ? "font-[family-name:var(--font-noto-bengali)]" : "font-[family-name:var(--font-dm-sans)]"}`}
+      >
+        <NextIntlClientProvider messages={messages}>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -1,10 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Search } from "lucide-react";
 
 export function SearchBar({ defaultQuery = "", defaultArea = "Dhaka" }: { defaultQuery?: string; defaultArea?: string }) {
+  const t = useTranslations("search");
   const router = useRouter();
   const [query, setQuery] = useState(defaultQuery);
   const [area, setArea] = useState(defaultArea);
@@ -25,7 +27,7 @@ export function SearchBar({ defaultQuery = "", defaultArea = "Dhaka" }: { defaul
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search products — rice, butter, milk..."
+          placeholder={t("placeholder")}
           className="w-full rounded-xl border border-emerald-200 bg-white py-3 pl-10 pr-4 text-emerald-950 shadow-sm outline-none ring-emerald-500 focus:ring-2"
         />
       </div>
@@ -43,7 +45,7 @@ export function SearchBar({ defaultQuery = "", defaultArea = "Dhaka" }: { defaul
         type="submit"
         className="rounded-xl bg-emerald-800 px-6 py-3 font-semibold text-white shadow-md transition hover:bg-emerald-700"
       >
-        Compare Prices
+        {t("comparePrices")}
       </button>
     </form>
   );

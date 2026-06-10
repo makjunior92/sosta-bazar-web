@@ -1,11 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ExternalLink, Tag } from "lucide-react";
-import type { Offer } from "@/lib/api/types";
-import { STORE_COLORS, formatPrice } from "@/lib/api/client";
+
 import { ProductImage } from "@/components/ProductImage";
+import { STORE_COLORS, formatPrice } from "@/lib/api/client";
+import type { Offer } from "@/lib/api/types";
 
 export function DealCard({ offer }: { offer: Offer }) {
+  const t = useTranslations("common");
   const storeClass = STORE_COLORS[offer.store_slug] || "bg-gray-100 text-gray-800 border-gray-200";
 
   return (
@@ -13,7 +16,7 @@ export function DealCard({ offer }: { offer: Offer }) {
       {offer.is_best_deal && (
         <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-xs font-bold text-amber-950 shadow">
           <Tag className="h-3 w-3" />
-          Best Deal
+          {t("bestDeal")}
         </div>
       )}
       <div className="flex h-44 items-center justify-center bg-emerald-50/50 p-4">
@@ -28,7 +31,9 @@ export function DealCard({ offer }: { offer: Offer }) {
           <div>
             <p className="text-xl font-bold text-emerald-900">{formatPrice(offer.price_bdt)}</p>
             {offer.unit_price_bdt && (
-              <p className="text-xs text-emerald-600">{formatPrice(offer.unit_price_bdt)}/unit</p>
+              <p className="text-xs text-emerald-600">
+                {formatPrice(offer.unit_price_bdt)}/{t("unit")}
+              </p>
             )}
           </div>
           <a
@@ -37,7 +42,7 @@ export function DealCard({ offer }: { offer: Offer }) {
             rel="noopener noreferrer"
             className="flex items-center gap-1 rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
           >
-            Buy <ExternalLink className="h-3 w-3" />
+            {t("buy")} <ExternalLink className="h-3 w-3" />
           </a>
         </div>
       </div>

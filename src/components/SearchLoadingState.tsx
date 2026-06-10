@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Loader2, Search, Store } from "lucide-react";
 
 type SearchPhase = "idle" | "checking" | "scraping" | "done";
@@ -13,17 +14,18 @@ export function SearchLoadingState({
   query: string;
   messages: string[];
 }) {
+  const t = useTranslations("search");
+
   if (phase === "idle" || phase === "done") return null;
 
-  const progress =
-    phase === "checking" ? 15 : Math.min(20 + messages.length * 18, 92);
+  const progress = phase === "checking" ? 15 : Math.min(20 + messages.length * 18, 92);
 
   const headline =
     phase === "checking"
-      ? "Preparing your search..."
+      ? t("loadingPreparing")
       : messages.length <= 1
-        ? "Connecting to stores..."
-        : "Comparing prices across stores...";
+        ? t("loadingConnecting")
+        : t("loadingComparing");
 
   return (
     <div className="mb-8 overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/80 p-6 shadow-sm">
@@ -34,9 +36,7 @@ export function SearchLoadingState({
         </div>
         <div>
           <p className="font-semibold text-emerald-950">{headline}</p>
-          <p className="text-sm text-emerald-600">
-            Finding the best deals for &ldquo;{query}&rdquo;
-          </p>
+          <p className="text-sm text-emerald-600">{t("loadingFinding", { query })}</p>
         </div>
         <Loader2 className="ml-auto h-5 w-5 animate-spin text-amber-500" />
       </div>
@@ -50,12 +50,8 @@ export function SearchLoadingState({
       <p className="mb-4 text-right text-xs font-medium text-emerald-600">{progress}%</p>
 
       <ul className="space-y-2">
-        {(messages.length > 0 ? messages : ["Initializing scrapers..."]).map((msg, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-2 text-sm text-emerald-800 animate-in fade-in slide-in-from-left-2"
-            style={{ animationDelay: `${i * 80}ms` }}
-          >
+        {(messages.length > 0 ? messages : [t("loadingInit")]).map((msg, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm text-emerald-800">
             <Store className="h-3.5 w-3.5 shrink-0 text-amber-500" />
             {msg}
           </li>

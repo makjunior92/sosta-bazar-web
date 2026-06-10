@@ -1,7 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+
 import { DealCard } from "@/components/DealCard";
 import { SearchBar } from "@/components/SearchBar";
 import { SearchLoadingState } from "@/components/SearchLoadingState";
@@ -39,6 +41,8 @@ function OfferGrid({ offers }: { offers: Offer[] }) {
 }
 
 function SearchResults() {
+  const t = useTranslations("search");
+  const tc = useTranslations("common");
   const params = useSearchParams();
   const q = params.get("q") || "";
   const area = params.get("area") || undefined;
@@ -109,8 +113,10 @@ function SearchResults() {
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-xl font-bold text-emerald-950">
-              Results for &ldquo;{q}&rdquo;
-              {cached && <span className="ml-2 text-sm font-normal text-emerald-600">(cached)</span>}
+              {t("resultsFor", { query: q })}
+              {cached && (
+                <span className="ml-2 text-sm font-normal text-emerald-600">({tc("cached")})</span>
+              )}
             </h1>
             {!isLoading && hasResults && (
               <select
@@ -118,8 +124,8 @@ function SearchResults() {
                 onChange={(e) => setSort(e.target.value)}
                 className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm"
               >
-                <option value="unit_price">Lowest unit price</option>
-                <option value="price">Lowest price</option>
+                <option value="unit_price">{t("sortUnitPrice")}</option>
+                <option value="price">{t("sortPrice")}</option>
               </select>
             )}
           </div>
@@ -132,14 +138,12 @@ function SearchResults() {
             />
           )}
 
-          {showEmpty && (
-            <p className="text-emerald-700">No products found. Try a different search term.</p>
-          )}
+          {showEmpty && <p className="text-emerald-700">{t("noProducts")}</p>}
 
           {sortedOffers.length > 0 && (
             <section className="mb-10">
               <h2 className="mb-4 text-lg font-semibold text-emerald-900">
-                Best matches for &ldquo;{q}&rdquo;
+                {t("bestMatches", { query: q })}
                 <span className="ml-2 text-sm font-normal text-emerald-600">({sortedOffers.length})</span>
               </h2>
               <OfferGrid offers={sortedOffers} />
@@ -149,12 +153,10 @@ function SearchResults() {
           {sortedRelated.length > 0 && (
             <section>
               <h2 className="mb-1 text-lg font-semibold text-emerald-900">
-                Related products
+                {t("relatedProducts")}
                 <span className="ml-2 text-sm font-normal text-emerald-600">({sortedRelated.length})</span>
               </h2>
-              <p className="mb-4 text-sm text-emerald-600">
-                Items containing &ldquo;{q}&rdquo; but not the exact product — e.g. milk chocolate, milk butter
-              </p>
+              <p className="mb-4 text-sm text-emerald-600">{t("relatedHint", { query: q })}</p>
               <OfferGrid offers={sortedRelated} />
             </section>
           )}
@@ -164,9 +166,14 @@ function SearchResults() {
   );
 }
 
+function SearchFallback() {
+  const tc = useTranslations("common");
+  return <SearchLoadingState phase="checking" query="" messages={[tc("loading")]} />;
+}
+
 export default function SearchPage() {
   return (
-    <Suspense fallback={<SearchLoadingState phase="checking" query="" messages={["Loading..."]} />}>
+    <Suspense fallback={<SearchFallback />}>
       <SearchResults />
     </Suspense>
   );

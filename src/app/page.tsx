@@ -1,8 +1,13 @@
-import { SearchBar } from "@/components/SearchBar";
+import { getTranslations } from "next-intl/server";
+
 import { DealCard } from "@/components/DealCard";
+import { SearchBar } from "@/components/SearchBar";
 import { getDeals, getStores } from "@/lib/api/client";
 
 export default async function HomePage() {
+  const t = await getTranslations("home");
+  const tc = await getTranslations("common");
+
   let deals: Awaited<ReturnType<typeof getDeals>>["deals"] = [];
   let stores: Awaited<ReturnType<typeof getStores>> = [];
 
@@ -18,17 +23,17 @@ export default async function HomePage() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <section className="mb-12 text-center">
         <h1 className="mb-3 text-4xl font-bold tracking-tight text-emerald-950 sm:text-5xl">
-          Find the <span className="text-amber-500">cheapest</span> groceries
+          {t.rich("title", {
+            cheapest: () => <span className="text-amber-500">{t("cheapest")}</span>,
+          })}
         </h1>
-        <p className="mb-8 text-lg text-emerald-700">
-          Compare prices across Bangladesh&apos;s top online stores in one search.
-        </p>
+        <p className="mb-8 text-lg text-emerald-700">{t("subtitle")}</p>
         <SearchBar />
       </section>
 
       {stores.length > 0 && (
         <section className="mb-12">
-          <h2 className="mb-4 text-lg font-semibold text-emerald-900">Stores we compare</h2>
+          <h2 className="mb-4 text-lg font-semibold text-emerald-900">{t("storesWeCompare")}</h2>
           <div className="flex flex-wrap gap-3">
             {stores.map((store) => (
               <div
@@ -40,7 +45,7 @@ export default async function HomePage() {
                 }`}
               >
                 {store.name}
-                {!store.health_ok && " (offline)"}
+                {!store.health_ok && ` (${tc("offline")})`}
               </div>
             ))}
           </div>
@@ -49,7 +54,7 @@ export default async function HomePage() {
 
       {deals.length > 0 && (
         <section>
-          <h2 className="mb-4 text-lg font-semibold text-emerald-900">Today&apos;s best deals</h2>
+          <h2 className="mb-4 text-lg font-semibold text-emerald-900">{t("todaysDeals")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {deals.map((deal, i) => (
               <DealCard key={i} offer={deal} />

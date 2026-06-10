@@ -1,8 +1,11 @@
+import { getTranslations } from "next-intl/server";
+
 import { DealCard } from "@/components/DealCard";
 import { PriceChart } from "@/components/PriceChart";
 import { getProduct, getProductHistory } from "@/lib/api/client";
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("product");
   const { id } = await params;
   let product = null;
   let history: { recorded_at: string; price_bdt: number | string; store_name: string }[] = [];
@@ -13,7 +16,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   } catch {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <p className="text-red-600">Product not found or API unavailable.</p>
+        <p className="text-red-600">{t("notFound")}</p>
       </div>
     );
   }
@@ -27,7 +30,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <PriceChart history={history} />
       </div>
 
-      <h2 className="mb-4 text-lg font-semibold text-emerald-900">Available offers</h2>
+      <h2 className="mb-4 text-lg font-semibold text-emerald-900">{t("availableOffers")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {product.offers.map((offer, i) => (
           <DealCard key={i} offer={offer} />

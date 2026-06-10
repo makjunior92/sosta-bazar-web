@@ -1,12 +1,16 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface PriceChartProps {
   history: { recorded_at: string; price_bdt: number | string; store_name: string }[];
 }
 
 export function PriceChart({ history }: PriceChartProps) {
+  const t = useTranslations("product");
+
   if (!history.length) {
-    return <p className="text-sm text-emerald-600">No price history yet.</p>;
+    return <p className="text-sm text-emerald-600">{t("noHistory")}</p>;
   }
 
   const prices = history.map((h) => (typeof h.price_bdt === "string" ? parseFloat(h.price_bdt) : h.price_bdt));
@@ -16,7 +20,7 @@ export function PriceChart({ history }: PriceChartProps) {
 
   return (
     <div className="rounded-2xl border border-emerald-100 bg-white p-4">
-      <h3 className="mb-4 font-semibold text-emerald-900">Price History</h3>
+      <h3 className="mb-4 font-semibold text-emerald-900">{t("priceHistory")}</h3>
       <div className="flex h-32 items-end gap-1">
         {history.map((point, i) => {
           const price = typeof point.price_bdt === "string" ? parseFloat(point.price_bdt) : point.price_bdt;
